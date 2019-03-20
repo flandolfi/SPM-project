@@ -19,22 +19,11 @@
 #include <iomanip>
 #endif
 
-#define LD_MEM_ORDER std::memory_order_seq_cst
-#define ST_MEM_ORDER std::memory_order_seq_cst
-
-#define P_VALUE_0_200 1.642
-#define P_VALUE_0_100 2.706
-#define P_VALUE_0_050 3.841
-#define P_VALUE_0_020 5.412
-#define P_VALUE_0_010 6.635
-#define P_VALUE_0_005 7.879
-#define P_VALUE_0_002 9.550
-#define P_VALUE_0_001 10.828
 
 class Scheduler {
 public:
     using JobType = std::function<void(unsigned long)>;
-    enum class Policy { relaxed, strict, strong, only_local, only_global };
+    enum class Policy { relaxed, strict, strong, perfect, only_local, only_global };
 
     explicit Scheduler(unsigned long n_workers = 1ul,
                        Policy policy = Policy::only_global);

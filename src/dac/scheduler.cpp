@@ -4,6 +4,16 @@
 
 #include <dac/scheduler.h>
 
+#define P_VALUE_0_500 0.455
+#define P_VALUE_0_200 1.642
+#define P_VALUE_0_100 2.706
+#define P_VALUE_0_050 3.841
+#define P_VALUE_0_020 5.412
+#define P_VALUE_0_010 6.635
+#define P_VALUE_0_005 7.879
+#define P_VALUE_0_002 9.550
+#define P_VALUE_0_001 10.828
+
 
 #ifdef DEBUG
 unsigned int Scheduler::ID = 0;
@@ -38,19 +48,23 @@ void Scheduler::mark_done(unsigned long from) {
 void Scheduler::set_policy(Scheduler::Policy policy) {
     switch (policy) {
         case Policy::relaxed:
-            chi_limit = P_VALUE_0_001;
+            chi_limit = P_VALUE_0_005;
             break;
 
         case Policy::strict:
-            chi_limit = P_VALUE_0_010;
+            chi_limit = P_VALUE_0_050;
             break;
 
         case Policy::strong:
-            chi_limit = P_VALUE_0_100;
+            chi_limit = P_VALUE_0_500;
+            break;
+
+        case Policy::perfect:
+            chi_limit = 0;
             break;
 
         case Policy::only_local:
-            chi_limit = 0;
+            chi_limit = std::numeric_limits<float>::max();
             break;
 
         case Policy::only_global:
@@ -74,19 +88,8 @@ void Scheduler::reset(unsigned long n_workers, Policy policy) {
 bool Scheduler::get_job(Scheduler::JobType &job, unsigned long from) {
     Schedule schedule;
 
-#ifdef DEBUG
-    workers[from].log_time();
-    workers[from].file << "Retrieving job..." << std::endl;
-#endif
-
-    if (!workers[from].get_job(schedule)) {
-#ifdef DEBUG
-        workers[from].log_time();
-        workers[from].file << "No job found; Scheduling finished." << std::endl;
-#endif
-
+    if (!workers[from].get_job(schedule))
         return false;
-    }
 
     job = std::move(schedule.first);
 
