@@ -4,6 +4,8 @@
 
 #include <dac/scheduler.h>
 
+#define ST_MEM_ORDER std::memory_order_release
+#define LD_MEM_ORDER std::memory_order_consume
 #define CMP [](const Schedule &lhs, const Schedule &rhs){ return lhs.second >= rhs.second; }
 
 
