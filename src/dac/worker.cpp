@@ -10,15 +10,27 @@ Scheduler::Worker::Worker(Scheduler &parent, unsigned long id) : parent(parent),
     char name[20];
     std::sprintf(name, "S%i_W%ld.txt", parent.id, id);
     file.open(name);
+
+    log_time();
+    file << "Worker created" << std::endl;
 #endif
 }
 
 bool Scheduler::Worker::get_job(Scheduler::Schedule &job) {
+#ifdef DEBUG
+    log_time();
+    file << "Retrieving job..." << std::endl;
+#endif
+
     if (local_list.empty()) {
 #ifdef DEBUG
         bool result = parent.global_list.pop(job);
         log_time();
-        file << "Retrieved GLOBAL job with priority " << job.second << std::endl;
+
+        if (result)
+            file << "Retrieved GLOBAL job with priority " << job.second << std::endl;
+        else
+            file << "No job found; Scheduling finished" << std::endl;
 
         return result;
 #else
@@ -69,6 +81,9 @@ bool Scheduler::Worker::chi_square_test() {
     if (parent.chi_limit < 0 || par_degree < 2)
         return false;
 
+    if (parent.chi_limit == std::numeric_limits<float>::max())
+        return true;
+
     auto remaining = parent.global_list.get_remaining();
 
     if (remaining == 0)
@@ -76,6 +91,16 @@ bool Scheduler::Worker::chi_square_test() {
 
     float obs_jobs = local_list.size();
     float exp_jobs = remaining / par_degree;
+
+    if (obs_jobs < exp_jobs) {
+#ifdef DEBUG
+        log_time();
+        file << "Jobs below average, no test executed" << std::endl;
+#endif
+
+        return true;
+    }
+
     float chi_square = (obs_jobs - exp_jobs)*(obs_jobs - exp_jobs);
     chi_square += chi_square/(par_degree - 1.f);
     chi_square /= exp_jobs;
@@ -91,7 +116,7 @@ bool Scheduler::Worker::chi_square_test() {
 
 #ifdef DEBUG
 void Scheduler::Worker::log_time() {
-    file << "[" << std::setfill(' ') << std::setw(8) << std::clock() << "] ";
+    file << "[" << std::setfill(' ') << std::setw(10) << std::clock() << "] ";
     file << "THREAD " << id << ": ";
 }
 #endif
