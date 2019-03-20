@@ -40,7 +40,7 @@ public:
 
     void compute(const TypeIn& input, TypeOut& output, unsigned long workers = 1,
                  Scheduler::Policy fork_policy = Scheduler::Policy::strong,
-                 Scheduler::Policy join_policy = Scheduler::Policy::relaxed);
+                 Scheduler::Policy join_policy = Scheduler::Policy::only_local);
 };
 
 
@@ -54,6 +54,13 @@ DAC<TypeIn, TypeOut>::DAC(const DAC::DivideFun &divide, const DAC::ConquerFun &c
 template<typename TypeIn, typename TypeOut>
 void DAC<TypeIn, TypeOut>::compute(const TypeIn &input, TypeOut &output, unsigned long workers,
                                    Scheduler::Policy fork_policy, Scheduler::Policy join_policy) {
+    if (join_policy != Scheduler::Policy::only_local && join_policy != Scheduler::Policy::only_global) {
+        std::cerr << "Error: Join Scheduler should have 'only_global' or "
+                     "'only_local' policy, or it might lead to deadlocks." << std::endl;
+
+        return;
+    }
+
     std::unique_lock<std::mutex> lock(mtx);
     std::promise<void> promise;
 
