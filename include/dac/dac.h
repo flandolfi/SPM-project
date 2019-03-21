@@ -28,9 +28,8 @@ private:
     std::mutex mtx;
 
     void run(unsigned long id);
-    void fork(const TypeIn &input, TypeOut &output, std::promise<void> &promise, long level, unsigned long id);
-    void join(std::vector<std::promise<void>> *sub_promises, std::vector<TypeOut> *sub_results, TypeOut &output,
-            unsigned long id);
+    void fork(const TypeIn &input, std::promise<TypeOut> &promise, long level, unsigned long id);
+    void join(std::vector<std::promise<TypeOut>> *sub_promises, std::promise<TypeOut> &promise, unsigned long id);
 
 public:
     DAC(const DivideFun& divide,
@@ -39,7 +38,7 @@ public:
         const BaseCaseFun& base_case);
 
     void compute(const TypeIn& input, TypeOut& output, unsigned long workers = 1,
-                 Scheduler::Policy fork_policy = Scheduler::Policy::strong,
+                 Scheduler::Policy fork_policy = Scheduler::Policy::strict,
                  Scheduler::Policy join_policy = Scheduler::Policy::only_local);
 };
 
@@ -62,13 +61,13 @@ void DAC<TypeIn, TypeOut>::compute(const TypeIn &input, TypeOut &output, unsigne
     }
 
     std::unique_lock<std::mutex> lock(mtx);
-    std::promise<void> promise;
+    std::promise<TypeOut> promise;
 
     forks.reset(workers, fork_policy);
     joins.reset(workers, join_policy);
 
     forks.schedule([&](unsigned long id) {
-        fork(input, output, promise, 0ul, id);
+        fork(input, promise, 0ul, id);
     }, 0ul, 0ul);
 
     std::vector<std::thread> threads;
@@ -81,14 +80,16 @@ void DAC<TypeIn, TypeOut>::compute(const TypeIn &input, TypeOut &output, unsigne
 
     for (auto &thread: threads)
         thread.join();
+
+    output = std::move(promise.get_future().get());
 }
 
 template<typename TypeIn, typename TypeOut>
-void DAC<TypeIn, TypeOut>::fork(const TypeIn &input, TypeOut &output, std::promise<void> &promise, long level,
-        unsigned long id) {
+void DAC<TypeIn, TypeOut>::fork(const TypeIn &input, std::promise<TypeOut> &promise, long level, unsigned long id) {
     if (base_test(input)) {
+        TypeOut output;
         base_case(input, output);
-        promise.set_value();
+        promise.set_value(std::move(output));
         forks.mark_done(id);
 
         return;
@@ -97,21 +98,18 @@ void DAC<TypeIn, TypeOut>::fork(const TypeIn &input, TypeOut &output, std::promi
     auto sub_problems = new std::vector<TypeIn>();
     divide(input, *sub_problems);
     auto size = sub_problems->size();
-    auto sub_results = new std::vector<TypeOut>(size);
-    auto sub_promises = new std::vector<std::promise<void>>(size);
+    auto sub_promises = new std::vector<std::promise<TypeOut>>(size);
     std::vector<Scheduler::JobType> sub_forks;
     sub_forks.reserve(size);
 
     for (auto i = 0ul; i < size; ++i) {
         sub_forks.emplace_back([=](unsigned long id){
-            fork((*sub_problems)[i], (*sub_results)[i], (*sub_promises)[i], level + 1, id);
+            fork((*sub_problems)[i], (*sub_promises)[i], level + 1, id);
         });
     }
 
-    joins.schedule(Scheduler::JobType([=, &output, &promise](unsigned long id) {
-        join(sub_promises, sub_results, output, id);
-        promise.set_value();
-        sub_problems->clear();
+    joins.schedule(Scheduler::JobType([=, &promise](unsigned long id) {
+        join(sub_promises, promise, id);
 
         delete sub_problems;
     }), -level, id);
@@ -126,18 +124,18 @@ void DAC<TypeIn, TypeOut>::fork(const TypeIn &input, TypeOut &output, std::promi
 }
 
 template<typename TypeIn, typename TypeOut>
-void DAC<TypeIn, TypeOut>::join(std::vector<std::promise<void>> *sub_promises, std::vector<TypeOut> *sub_results,
-                                TypeOut &output, unsigned long id) {
-    for (auto &sf: *sub_promises)
-        sf.get_future().wait();
+void DAC<TypeIn, TypeOut>::join(std::vector<std::promise<TypeOut>> *sub_promises, std::promise<TypeOut> &promise,
+        unsigned long id) {
+    std::vector<TypeOut> results;
+    std::transform(sub_promises->begin(), sub_promises->end(), std::back_inserter(results),
+            [](std::promise<TypeOut> &p){ return p.get_future().get(); });
 
-    conquer(*sub_results, output);
+    TypeOut output;
+    conquer(results, output);
+    promise.set_value(std::move(output));
     joins.mark_done(id);
-    sub_promises->clear();
-    sub_results->clear();
 
     delete sub_promises;
-    delete sub_results;
 }
 
 template<typename TypeIn, typename TypeOut>
