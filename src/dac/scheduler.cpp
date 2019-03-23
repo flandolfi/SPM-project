@@ -40,8 +40,7 @@ void Scheduler::mark_done(unsigned long from) {
     global_list.dec_remaining();
 
 #ifdef DEBUG
-    workers[from].log_time();
-    workers[from].file << "Job completed" << std::endl;
+    workers[from].log("J_DONE", "", "");
 #endif
 }
 

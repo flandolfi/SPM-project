@@ -25,8 +25,7 @@ public:
     using JobType = std::function<void(unsigned long)>;
     enum class Policy { relaxed, strict, strong, perfect, only_local, only_global };
 
-    explicit Scheduler(unsigned long n_workers = 1ul,
-                       Policy policy = Policy::only_global);
+    explicit Scheduler(unsigned long n_workers = 1ul, Policy policy = Policy::only_global);
     void schedule(JobType &&job, long priority, unsigned long to);
     bool get_job(JobType &job, unsigned long from);
     void mark_done(unsigned long from);
@@ -65,15 +64,18 @@ private:
         bool chi_square_test();
 
     public:
-#ifdef DEBUG
-        std::ofstream file;
-
-        void log_time();
-#endif
-
         explicit Worker(Scheduler& parent, unsigned long id);
         bool get_job(Schedule &job);
         void schedule(Schedule&& job);
+
+#ifdef DEBUG
+        std::ofstream file;
+        static std::chrono::time_point<std::chrono::high_resolution_clock> START;
+
+        template <typename T1, typename T2>
+        void log(const char* code, T1 info1, T2 info2);
+        void log_header();
+#endif
     };
 
     SyncJobList global_list;

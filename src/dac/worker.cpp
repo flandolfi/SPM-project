@@ -8,29 +8,27 @@
 Scheduler::Worker::Worker(Scheduler &parent, unsigned long id) : parent(parent), id(id) {
 #ifdef DEBUG
     char name[20];
-    std::sprintf(name, "S%i_W%ld.txt", parent.id, id);
+    std::sprintf(name, "S%i_W%ld.csv", parent.id, id);
     file.open(name);
 
-    log_time();
-    file << "Worker created" << std::endl;
+    log_header();
+    log("CREATE", parent.id, id);
 #endif
 }
 
 bool Scheduler::Worker::get_job(Scheduler::Schedule &job) {
 #ifdef DEBUG
-    log_time();
-    file << "Retrieving job..." << std::endl;
+    log("RT_BGN", "", "");
 #endif
 
     if (local_list.empty()) {
 #ifdef DEBUG
         bool result = parent.global_list.pop(job);
-        log_time();
 
         if (result)
-            file << "Retrieved GLOBAL job with priority " << job.second << std::endl;
+            log("RT_GLB", job.second, "");
         else
-            file << "No job found; Scheduling finished" << std::endl;
+            log("NO_JOB", "", "");
 
         return result;
 #else
@@ -42,8 +40,7 @@ bool Scheduler::Worker::get_job(Scheduler::Schedule &job) {
     local_list.pop_back();
 
 #ifdef DEBUG
-    log_time();
-    file << "Retrieved LOCAL job with priority " << job.second << std::endl;
+    log("RT_LOC", job.second, "");
 #endif
 
     return true;
@@ -51,8 +48,7 @@ bool Scheduler::Worker::get_job(Scheduler::Schedule &job) {
 
 void Scheduler::Worker::schedule(Scheduler::Schedule &&job) {
 #ifdef DEBUG
-    log_time();
-    file << "Scheduling job with priority " << job.second << "..." << std::endl;
+    log("SC_BGN", job.second, "");
 #endif
 
     local_list.push_back(std::forward<Schedule>(job));
@@ -62,16 +58,13 @@ void Scheduler::Worker::schedule(Scheduler::Schedule &&job) {
         local_list.pop_front();
 
 #ifdef DEBUG
-        log_time();
-        file << "Job scheduled GLOBALLY" << std::endl;
-
+        log("SC_GLB", "", "");
         return;
 #endif
     }
 
 #ifdef DEBUG
-    log_time();
-    file << "Job scheduled LOCALLY" << std::endl;
+    log("SC_LOC", "", "");
 #endif
 }
 
@@ -94,8 +87,7 @@ bool Scheduler::Worker::chi_square_test() {
 
     if (obs_jobs < exp_jobs) {
 #ifdef DEBUG
-        log_time();
-        file << "Jobs below average, no test executed" << std::endl;
+        log("CHI_SK", obs_jobs, exp_jobs);
 #endif
 
         return true;
@@ -106,17 +98,27 @@ bool Scheduler::Worker::chi_square_test() {
     chi_square /= exp_jobs;
 
 #ifdef DEBUG
-    log_time();
-    file << "Chi-Square test " << (chi_square <= parent.chi_limit? "passed" : "failed")
-         << " with " << chi_square << " (LIMIT " << parent.chi_limit << ")" << std::endl;
+    if (chi_square <= parent.chi_limit)
+        log("CHI_OK", chi_square, parent.chi_limit);
+    else
+        log("CHI_NO", chi_square, parent.chi_limit);
 #endif
 
     return chi_square <= parent.chi_limit;
 }
 
 #ifdef DEBUG
-void Scheduler::Worker::log_time() {
-    file << "[" << std::setfill(' ') << std::setw(10) << std::clock() << "] ";
-    file << "THREAD " << id << ": ";
+std::chrono::time_point<std::chrono::high_resolution_clock> Scheduler::Worker::START = std::chrono::high_resolution_clock::now();
+
+template <typename T1, typename T2>
+void Scheduler::Worker::log(const char* code, T1 info1, T2 info2) {
+    auto now = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = now - Scheduler::Worker::START;
+
+    file << 1000.f*elapsed.count() << "," << id << "," << code << "," << info1 << "," << info2 << std::endl;
+}
+
+void Scheduler::Worker::log_header() {
+    file << "time,id,code,info1,info2" << std::endl;
 }
 #endif
