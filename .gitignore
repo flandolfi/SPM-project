@@ -10,3 +10,8 @@ CTestTestfile.cmake
 
 cmake-build-*/*
 .idea/*
+.vscode/*
+cmake-build-*/
+.ipynb_checkpoints
+report/*
+notebooks/data/*
