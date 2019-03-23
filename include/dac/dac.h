@@ -38,7 +38,7 @@ public:
         const BaseCaseFun& base_case);
 
     void compute(const TypeIn& input, TypeOut& output, unsigned long workers = 1,
-                 Scheduler::Policy fork_policy = Scheduler::Policy::strict,
+                 Scheduler::Policy fork_policy = Scheduler::Policy::strong,
                  Scheduler::Policy join_policy = Scheduler::Policy::only_local);
 };
 
