@@ -1,5 +1,4 @@
-add_library(dac INTERFACE)
-target_sources(dac INTERFACE
+add_library(dac
         ${PROJECT_SOURCE_DIR}/include/dac/dac.h
         ${PROJECT_SOURCE_DIR}/include/dac/scheduler.h
         ${PROJECT_SOURCE_DIR}/src/dac/scheduler.cpp
