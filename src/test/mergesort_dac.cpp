@@ -31,9 +31,9 @@
 #include <cstring>
 #include "../includes/utils.h"
 #if USE_FF
-#include <ff/DC.hpp>
+#include <ff/dc.hpp>
 using namespace ff;
-#elif USE_OPENMP
+#elif USE_OMP
 #include "../includes/dac_openmp.hpp"
 #elif USE_TBB
 #include "../includes/dac_tbb.hpp"
@@ -139,9 +139,9 @@ bool isVectorSorted(vector<int> a, int n)
 
 int main(int argc, char *argv[])
 {
-	if(argc<2)
+	if(argc<5)
 	{
-		cerr << "Usage: "<<argv[0]<< " <num_elements> <num_workers>"<<endl;
+		cerr << "Usage: " << argv[0] << " <num_elements> <min_proc> <max_proc> <num_trials>" << endl;
 		exit(-1);
 	}
 	const std::function<void(const Operand&,vector<Operand>&)> div(divide);
@@ -150,51 +150,61 @@ int main(int argc, char *argv[])
 	const std::function<bool(const Operand &)> cf(cond);
 
 	int num_elem=atoi(argv[1]);
-	int nwork=atoi(argv[2]);
-	//generate a only_global array
-	int *numbers=generateRandomArray(num_elem);
-	//fill the vector
-	vector<int> v(numbers, numbers+num_elem ); // use some utility to avoid hardcoding the size here
+    int min_proc=atoi(argv[2])  ;
+    int max_proc=atoi(argv[3]);
+    int num_trials=atoi(argv[4]);
 
-	//build the operand
-	Operand op;
 
-	op.left=v.begin();
-	op.right=v.end();
+    printf("Workers,Time (ms)\n");
 
-	Result res;
+	for (auto nwork = min_proc; nwork <= max_proc; nwork *= 2) {
+	    for (auto trial = 0; trial < num_trials; trial++) {
+            //generate a only_global array
+            int *numbers=generateRandomArray(num_elem);
+            //fill the vector
+            vector<int> v(numbers, numbers+num_elem ); // use some utility to avoid hardcoding the size here
+
+            //build the operand
+            Operand op;
+
+            op.left=v.begin();
+            op.right=v.end();
+
+            Result res;
 #if USE_FF
-	ff_DC<Operand, Result> dac(div,mergef,sq,cf,op,res,nwork);
-#elif USE_OPENMP
-	DacOpenmp<Operand, Result> dac(div,mergef,sq,cf,op,res,nwork);
-#elif USE_TBB
-	DacTBB<Operand, Result> dac(div,mergef,sq,cf,op,res,nwork);
-#else
-	DAC<Operand, Result> dac(div, mergef, cf, sq);
-#endif
-
-	long start_t=current_time_usecs();
-
-	//compute
-#if USE_FF
-	dac.run_and_wait_end();
+            ff_DC<Operand, Result> dac(div,mergef,sq,cf,op,res,nwork);
 #elif USE_OMP
-	dac.compute();
+            DacOpenmp<Operand, Result> dac(div,mergef,sq,cf,op,res,nwork);
 #elif USE_TBB
-	dac.compute();
+            DacTBB<Operand, Result> dac(div,mergef,sq,cf,op,res,nwork);
 #else
-	dac.compute(op, res, nwork);
+            DAC<Operand, Result> dac(div, mergef, cf, sq);
 #endif
-	long end_t=current_time_usecs();
 
+            long start_t=current_time_usecs();
 
-	//Correctness check
-	if(!isVectorSorted(v,num_elem))
-	{
-		fprintf(stderr,"Error: array is not sorted!!\n");
-		exit(-1);
+            //compute
+#if USE_FF
+            dac.run_and_wait_end();
+#elif USE_OMP
+            dac.compute();
+#elif USE_TBB
+            dac.compute();
+#else
+            dac.compute(op, res, nwork);
+#endif
+            long end_t=current_time_usecs();
+
+            //Correctness check
+            if(!isVectorSorted(v,num_elem))
+            {
+                fprintf(stderr,"Error: array is not sorted!!\n");
+                exit(-1);
+            }
+
+            printf("%d,%ld\n",nwork, end_t-start_t);
+	    }
 	}
-	printf("Time (usecs): %Ld\n",end_t-start_t);
 
 	return 0;
 }
