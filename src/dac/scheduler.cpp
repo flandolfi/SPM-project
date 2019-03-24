@@ -4,7 +4,9 @@
 
 #include <dac/scheduler.h>
 
+#define P_VALUE_0_750 0.101
 #define P_VALUE_0_500 0.455
+#define P_VALUE_0_250 1.323
 #define P_VALUE_0_200 1.642
 #define P_VALUE_0_100 2.706
 #define P_VALUE_0_050 3.841
