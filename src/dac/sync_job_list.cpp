@@ -39,8 +39,10 @@ void Scheduler::SyncJobList::inc_remaining(unsigned long long by) {
 }
 
 void Scheduler::SyncJobList::dec_remaining(unsigned long long by) {
-    if (remaining.fetch_sub(by, ST_MEM_ORDER) - by == 0)
+    if (remaining.fetch_sub(by, ST_MEM_ORDER) - by == 0) {
+        std::unique_lock<std::mutex> lock(mtx);
         cv.notify_all();
+    }
 }
 
 unsigned long long Scheduler::SyncJobList::get_remaining() {
