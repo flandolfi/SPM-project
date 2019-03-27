@@ -61,7 +61,7 @@ public:
      * @param n_workers number of parallel threads used to compute the scheduled tasks
      * @param policy the balancing policy
      */
-    explicit Scheduler(unsigned long n_workers = 1ul, Policy policy = Policy::only_global);
+    explicit Scheduler(unsigned long n_workers = 1ul, bool global_fifo = true, Policy policy = Policy::only_global);
 
     /**
      * Schedules a task to the given thread. It will increase the global job counter by 1.
@@ -118,7 +118,6 @@ public:
 private:
     using JobList = std::list<JobType>;
 
-
     // This is just a synchronized version of the priority_queue of the standard library. It will be also maintain the
     // number of remaining jobs to be completed.
     class SyncJobList {
@@ -127,9 +126,10 @@ private:
         std::mutex mtx;
         std::condition_variable cv;
         std::atomic_ullong remaining;
+        bool fifo;
 
     public:
-        explicit SyncJobList();
+        explicit SyncJobList(bool fifo = true);
         SyncJobList(SyncJobList&& sync_list) noexcept;
         void push(JobType &&item);
         bool pop(JobType &item);

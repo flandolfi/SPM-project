@@ -21,7 +21,8 @@
 unsigned int Scheduler::ID = 0;
 #endif
 
-Scheduler::Scheduler(unsigned long n_workers, Scheduler::Policy policy) : global_list(), n_workers(n_workers) {
+Scheduler::Scheduler(unsigned long n_workers, bool global_fifo, Scheduler::Policy policy)
+        : global_list(global_fifo), n_workers(n_workers) {
     for (auto id = 0ul; id < n_workers; ++id)
         workers.emplace_back(*this, id);
 

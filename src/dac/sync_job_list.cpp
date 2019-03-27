@@ -8,7 +8,7 @@
 #define LD_MEM_ORDER std::memory_order_consume
 
 
-Scheduler::SyncJobList::SyncJobList() : remaining(0ull) {}
+Scheduler::SyncJobList::SyncJobList(bool fifo) : remaining(0ull), fifo(fifo) {}
 
 Scheduler::SyncJobList::SyncJobList(SyncJobList &&list) noexcept
     : queue(std::move(list.queue)), remaining(list.get_remaining()) {}
@@ -27,8 +27,13 @@ bool Scheduler::SyncJobList::pop(JobType &item) {
     if (queue.empty())
         return false;  // No more jobs
 
-    item = std::move(queue.front());
-    queue.pop_front();
+    if (fifo) {
+        item = std::move(queue.front());
+        queue.pop_front();
+    } else {
+        item = std::move(queue.back());
+        queue.pop_back();
+    }
 
     return true;
 }
