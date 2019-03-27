@@ -69,10 +69,9 @@ public:
      * @warning It is not ensured that the specified thread will eventually compute the task (it depends on the given
      *     balancing policy).
      * @param job the task to be executed
-     * @param priority the priority of the task (will be only relevant in the global queue)
      * @param to the recipient thread ID (it should be a number between 0 and @p n_workers - 1)
      */
-    void schedule(JobType &&job, long priority, unsigned long to);
+    void schedule(JobType &&job, unsigned long to);
 
     /**
      * Retrieves a task from the local queue of a given thread. If the local queue is empty, it will be retrieved from
@@ -117,16 +116,14 @@ public:
     void reset(unsigned long n_workers, Policy policy);
 
 private:
-    // Pair of <task, priority>
-    using Schedule = std::pair<JobType, long>;
+    using JobList = std::list<JobType>;
+
 
     // This is just a synchronized version of the priority_queue of the standard library. It will be also maintain the
     // number of remaining jobs to be completed.
     class SyncJobList {
     private:
-        using Comparator = std::function<bool(const Schedule&, const Schedule&)>;
-
-        std::priority_queue<Schedule, std::vector<Schedule>, Comparator> queue;
+        JobList queue;
         std::mutex mtx;
         std::condition_variable cv;
         std::atomic_ullong remaining;
@@ -134,8 +131,8 @@ private:
     public:
         explicit SyncJobList();
         SyncJobList(SyncJobList&& sync_list) noexcept;
-        void push(Schedule &&item);
-        bool pop(Schedule &item);
+        void push(JobType &&item);
+        bool pop(JobType &item);
         void clear();
         void inc_remaining(unsigned long long by = 1ull);
         void dec_remaining(unsigned long long by = 1ull);
@@ -145,7 +142,7 @@ private:
     // Parallel worker
     class Worker {
     private:
-        std::list<Schedule> local_list;
+        JobList local_list;
         Scheduler& parent;
         unsigned long id;
 
@@ -154,8 +151,8 @@ private:
 
     public:
         explicit Worker(Scheduler& parent, unsigned long id);
-        bool get_job(Schedule &job);
-        void schedule(Schedule&& job);
+        bool get_job(JobType &job);
+        void schedule(JobType&& job);
 
 #ifdef DEBUG
         std::ofstream file;
@@ -164,23 +161,23 @@ private:
         /*
          * This function logs on a (private) file the action of the worker as a CSV line with columns time, id, code,
          * info1, and info2, with the following meanings:
-         *     - time: the time of the event from the beginning of the execuion (in milliseconds);
+         *     - time: the time of the event from the beginning of the execution (in milliseconds);
          *     - id: the id of the worker;
          *     - code: a six char code of the event, that may be one of the following:
          *         - CREATE: the worker has been instantiated. info1 will contain the ID of the parent Scheduler class,
          *         while info2 the id of the worker;
          *         - RT_BGN: the worker started to retrieve a job;
-         *         - RT_GLB: a job has been retrieved globally. info1 will contain its priority;
-         *         - RT_LOC: a job has been retrieved locally. info1 will contain its priority;
+         *         - RT_GLB: a job has been retrieved globally.
+         *         - RT_LOC: a job has been retrieved locally.
          *         - NO_JOB: no job has been found;
-         *         - SC_BGN: the worker started to schedule a job. info1 will contain its priority;
+         *         - SC_BGN: the worker started to schedule a job.
          *         - SC_GLB: the job has been scheduled globally;
          *         - SC_LOC: the job has been scheduled locally;
          *         - CHI_SK: the Chi squared test has been skipped (jobs below average). info1 will contain the number
          *         of job in the local queue and info1 the remaining jobs overall;
-         *         - CHI_OK: the Chi squared thes has been passed. info1 will contain the Chi squared value and info2
+         *         - CHI_OK: the Chi squared test has been passed. info1 will contain the Chi squared value and info2
          *         its limit value;
-         *         - CHI_NO: the Chi squared thes has not been passed. info1 will contain the Chi squared value and
+         *         - CHI_NO: the Chi squared test has not been passed. info1 will contain the Chi squared value and
          *         info2 its limit value;
          *         - J_DONE: a job has been completed.
          *     - info1, info2: a value that depends on code. They might be empty.

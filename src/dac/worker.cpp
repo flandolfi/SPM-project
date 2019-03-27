@@ -16,7 +16,7 @@ Scheduler::Worker::Worker(Scheduler &parent, unsigned long id) : parent(parent),
 #endif
 }
 
-bool Scheduler::Worker::get_job(Scheduler::Schedule &job) {
+bool Scheduler::Worker::get_job(Scheduler::JobType &job) {
 #ifdef DEBUG
     log("RT_BGN", "", "");
 #endif
@@ -26,7 +26,7 @@ bool Scheduler::Worker::get_job(Scheduler::Schedule &job) {
         bool result = parent.global_list.pop(job);
 
         if (result)
-            log("RT_GLB", job.second, "");
+            log("RT_GLB", "", "");
         else
             log("NO_JOB", "", "");
 
@@ -40,18 +40,18 @@ bool Scheduler::Worker::get_job(Scheduler::Schedule &job) {
     local_list.pop_back();
 
 #ifdef DEBUG
-    log("RT_LOC", job.second, "");
+    log("RT_LOC", "", "");
 #endif
 
     return true;
 }
 
-void Scheduler::Worker::schedule(Scheduler::Schedule &&job) {
+void Scheduler::Worker::schedule(Scheduler::JobType &&job) {
 #ifdef DEBUG
-    log("SC_BGN", job.second, "");
+    log("SC_BGN", "", "");
 #endif
 
-    local_list.push_back(std::forward<Schedule>(job));
+    local_list.push_back(std::forward<JobType >(job));
 
     if (!chi_squared_test()) {
         parent.global_list.push(std::move(local_list.front()));

@@ -94,7 +94,7 @@ void DAC<TypeIn, TypeOut>::compute(const TypeIn &input, TypeOut &output, unsigne
 
     forks.schedule([&](unsigned long id) {
         fork(input, promise, 0ul, id);
-    }, 0ul, 0ul);
+    }, 0ul);
 
     std::vector<std::thread> threads;
     threads.reserve(workers - 1ul);
@@ -138,13 +138,13 @@ void DAC<TypeIn, TypeOut>::fork(const TypeIn &input, std::promise<TypeOut> &prom
         join(sub_promises, promise, id);
 
         delete sub_problems;
-    }), -level, id);
+    }), id);
 
     auto continuation = std::move(sub_forks.back());
     sub_forks.pop_back();
 
     for (auto &&sf: sub_forks)
-        forks.schedule(std::move(sf), level + 1ul, id);
+        forks.schedule(std::move(sf), id);
 
     continuation(id);
 }

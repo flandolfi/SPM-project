@@ -32,9 +32,9 @@ Scheduler::Scheduler(unsigned long n_workers, Scheduler::Policy policy) : global
 #endif
 }
 
-void Scheduler::schedule(Scheduler::JobType &&job, long priority, unsigned long to) {
+void Scheduler::schedule(Scheduler::JobType &&job, unsigned long to) {
     global_list.inc_remaining();
-    workers[to].schedule(Schedule(std::move(job), priority));
+    workers[to].schedule(std::forward<JobType>(job));
 }
 
 void Scheduler::mark_done(unsigned long from) {
@@ -85,14 +85,7 @@ void Scheduler::reset(unsigned long n_workers, Policy policy) {
 }
 
 bool Scheduler::get_job(Scheduler::JobType &job, unsigned long from) {
-    Schedule schedule;
-
-    if (!workers[from].get_job(schedule))
-        return false;
-
-    job = std::move(schedule.first);
-
-    return true;
+    return workers[from].get_job(job);
 }
 
 unsigned long long Scheduler::remaining_jobs() {
