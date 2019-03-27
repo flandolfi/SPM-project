@@ -53,7 +53,7 @@ void Scheduler::Worker::schedule(Scheduler::Schedule &&job) {
 
     local_list.push_back(std::forward<Schedule>(job));
 
-    if (!chi_square_test()) {
+    if (!chi_squared_test()) {
         parent.global_list.push(std::move(local_list.front()));
         local_list.pop_front();
 
@@ -68,23 +68,27 @@ void Scheduler::Worker::schedule(Scheduler::Schedule &&job) {
 #endif
 }
 
-bool Scheduler::Worker::chi_square_test() {
+bool Scheduler::Worker::chi_squared_test() {
     float par_degree = parent.n_workers;
 
-    if (parent.chi_limit < 0 || par_degree < 2)
-        return false;
-
-    if (parent.chi_limit == std::numeric_limits<float>::max())
+    // Only local
+    if (par_degree < 2 || parent.chi_limit == std::numeric_limits<float>::max())
         return true;
+
+    // Only global
+    if (parent.chi_limit < 0)
+        return false;
 
     auto remaining = parent.global_list.get_remaining();
 
+    // Straight to global (and avoid divide by 0)
     if (remaining == 0)
         return false;
 
     float obs_jobs = local_list.size();
     float exp_jobs = remaining / par_degree;
 
+    // Skip test: jobs are less than expected!
     if (obs_jobs < exp_jobs) {
 #ifdef DEBUG
         log("CHI_SK", obs_jobs, exp_jobs);

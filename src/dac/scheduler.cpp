@@ -21,8 +21,7 @@
 unsigned int Scheduler::ID = 0;
 #endif
 
-Scheduler::Scheduler(unsigned long n_workers, Scheduler::Policy policy)
-                     : global_list(), n_workers(n_workers), rd(), gen(rd()), dist(0, n_workers - 2) {
+Scheduler::Scheduler(unsigned long n_workers, Scheduler::Policy policy) : global_list(), n_workers(n_workers) {
     for (auto id = 0ul; id < n_workers; ++id)
         workers.emplace_back(*this, id);
 
@@ -76,7 +75,6 @@ void Scheduler::set_policy(Scheduler::Policy policy) {
 
 void Scheduler::reset(unsigned long n_workers, Policy policy) {
     this->n_workers = n_workers;
-    dist = std::uniform_int_distribution<std::mt19937::result_type>(0, n_workers - 2);
     global_list.clear();
     workers.clear();
 
@@ -95,4 +93,8 @@ bool Scheduler::get_job(Scheduler::JobType &job, unsigned long from) {
     job = std::move(schedule.first);
 
     return true;
+}
+
+unsigned long long Scheduler::remaining_jobs() {
+    return global_list.get_remaining();
 }

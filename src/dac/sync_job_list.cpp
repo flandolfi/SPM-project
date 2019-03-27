@@ -26,7 +26,7 @@ bool Scheduler::SyncJobList::pop(Schedule &item) {
     cv.wait(lock, [&](){ return !queue.empty() || get_remaining() == 0; });
 
     if (queue.empty())
-        return false;
+        return false;  // No more jobs
 
     item = std::move(const_cast<Schedule&>(queue.top()));
     queue.pop();
@@ -41,7 +41,7 @@ void Scheduler::SyncJobList::inc_remaining(unsigned long long by) {
 void Scheduler::SyncJobList::dec_remaining(unsigned long long by) {
     if (remaining.fetch_sub(by, ST_MEM_ORDER) - by == 0) {
         std::unique_lock<std::mutex> lock(mtx);
-        cv.notify_all();
+        cv.notify_all();  // All jobs are done, rejoice!
     }
 }
 
