@@ -27,8 +27,8 @@ bool Scheduler::SyncJobList::pop(JobType &item) {
     if (queue.empty())
         return false;  // No more jobs
 
-    item = std::move(queue.back());
-    queue.pop_back();
+    item = std::move(queue.front());
+    queue.pop_front();
 
     return true;
 }
