@@ -85,7 +85,7 @@ bool Scheduler::Worker::chi_squared_test() {
     if (remaining == 0)
         return false;
 
-    float obs_jobs = local_list.size();
+    float obs_jobs = local_list.size() + 1;  // Assume it is working already
     float exp_jobs = remaining / par_degree;
 
     // Skip test: jobs are less than expected!
