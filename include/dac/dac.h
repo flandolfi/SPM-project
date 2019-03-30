@@ -38,7 +38,7 @@ private:
 
     void run(unsigned long id);
     void fork(const TypeIn &input, std::promise<TypeOut> &promise, unsigned long id);
-    void join(std::vector<std::promise<TypeOut>> *sub_promises, std::promise<TypeOut> &promise, unsigned long id);
+    void join(std::vector<std::promise<TypeOut>> *sub_promises, std::promise<TypeOut> &promise);
 
 public:
     /**
@@ -108,7 +108,6 @@ void DAC<TypeIn, TypeOut>::fork(const TypeIn &input, std::promise<TypeOut> &prom
         TypeOut output;
         base_case(input, output);
         promise.set_value(std::move(output));
-        forks.mark_done(id);
 
         return;
     }
@@ -126,8 +125,8 @@ void DAC<TypeIn, TypeOut>::fork(const TypeIn &input, std::promise<TypeOut> &prom
         });
     }
 
-    joins.schedule(Scheduler::JobType([=, &promise](unsigned long id) {
-        join(sub_promises, promise, id);
+    joins.schedule(Scheduler::JobType([=, &promise](unsigned long ignored) {
+        join(sub_promises, promise);
 
         delete sub_problems;
     }), id);
@@ -142,8 +141,7 @@ void DAC<TypeIn, TypeOut>::fork(const TypeIn &input, std::promise<TypeOut> &prom
 }
 
 template<typename TypeIn, typename TypeOut>
-void DAC<TypeIn, TypeOut>::join(std::vector<std::promise<TypeOut>> *sub_promises, std::promise<TypeOut> &promise,
-                                unsigned long id) {
+void DAC<TypeIn, TypeOut>::join(std::vector<std::promise<TypeOut>> *sub_promises, std::promise<TypeOut> &promise) {
     std::vector<TypeOut> results;
     std::transform(sub_promises->begin(), sub_promises->end(), std::back_inserter(results),
                    [](std::promise<TypeOut> &p) { return p.get_future().get(); });
@@ -151,17 +149,14 @@ void DAC<TypeIn, TypeOut>::join(std::vector<std::promise<TypeOut>> *sub_promises
     TypeOut output;
     conquer(results, output);
     promise.set_value(std::move(output));
-    joins.mark_done(id);
 
     delete sub_promises;
 }
 
 template<typename TypeIn, typename TypeOut>
 void DAC<TypeIn, TypeOut>::run(unsigned long id) {
-    Scheduler::JobType job;
-
-    while (forks.get_job(job, id)) job(id);
-    while (joins.get_job(job, id)) job(id);
+    while (forks.compute_job(id));
+    while (joins.compute_job(id));
 }
 
 

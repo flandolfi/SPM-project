@@ -75,23 +75,15 @@ public:
 
     /**
      * Retrieves a task from the local queue of a given thread. If the local queue is empty, it will be retrieved from
-     * the global queue.
+     * the global queue. It will decrease the global counter by 1.
      *
      * @warning If there are no task in the local queue nor in the global one, this method will halt until either a job
      * is scheduled (either locally or globally) or the internal counter is set to 0 (@see Scheduler:mark_done).
-     * @warning Calling this function will not decrease the global counter by 1.
      * @param job the retrieved job
      * @param from the thread ID (it should be a number between 0 and @p n_workers - 1)
      * @return true if a job is found, false if there will be no more jobs to be retrieved.
      */
-    bool get_job(JobType &job, unsigned long from);
-
-    /**
-     * Set a job as done (i.e., decrease the global job counter by 1).
-     *
-     * @param from the thread that completed the task (useful only for debugging purposes)
-     */
-    void mark_done(unsigned long from);
+    bool compute_job(unsigned long from);
 
     /**
      * Sets the policy of the scheduler.
@@ -99,13 +91,6 @@ public:
      * @param policy the new policy to be adopted
      */
     void set_policy(Policy policy);
-
-    /**
-     * Gets the number of remaining jobs to be completed.
-     *
-     * @return the number of scheduled jobs remaining
-     */
-    unsigned long long remaining_jobs();
 
     /**
      * Resets the scheduler. It will erase any pending task and reset the internal job counter.

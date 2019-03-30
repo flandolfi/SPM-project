@@ -38,14 +38,6 @@ void Scheduler::schedule(Scheduler::JobType &&job, unsigned long to) {
     workers[to].schedule(std::forward<JobType>(job));
 }
 
-void Scheduler::mark_done(unsigned long from) {
-    global_list.dec_remaining();
-
-#ifdef DEBUG
-    workers[from].log("J_DONE", "", "");
-#endif
-}
-
 void Scheduler::set_policy(Scheduler::Policy policy) {
     switch (policy) {
         case Policy::relaxed:
@@ -85,10 +77,20 @@ void Scheduler::reset(unsigned long n_workers, Policy policy) {
     set_policy(policy);
 }
 
-bool Scheduler::get_job(Scheduler::JobType &job, unsigned long from) {
-    return workers[from].get_job(job);
-}
+bool Scheduler::compute_job(unsigned long from) {
+    JobType job;
 
-unsigned long long Scheduler::remaining_jobs() {
-    return global_list.get_remaining();
+    bool result = workers[from].get_job(job);
+
+    if (!result)
+        return false;
+
+    job(from);
+    global_list.dec_remaining();
+
+#ifdef DEBUG
+    workers[from].log("J_DONE", "", "");
+#endif
+
+    return true;
 }
