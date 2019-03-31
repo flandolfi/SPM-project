@@ -89,7 +89,7 @@ bool Scheduler::Worker::chi_squared_test() {
     float exp_jobs = remaining / par_degree;
 
     // Skip test: jobs are less than expected!
-    if (obs_jobs < exp_jobs) {
+    if (obs_jobs <= exp_jobs) {
 #ifdef DEBUG
         log("CHI_SK", obs_jobs, exp_jobs);
 #endif
@@ -102,13 +102,13 @@ bool Scheduler::Worker::chi_squared_test() {
     chi_square /= exp_jobs;
 
 #ifdef DEBUG
-    if (chi_square <= parent.chi_limit)
+    if (chi_square < parent.chi_limit)
         log("CHI_OK", chi_square, parent.chi_limit);
     else
         log("CHI_NO", chi_square, parent.chi_limit);
 #endif
 
-    return chi_square <= parent.chi_limit;
+    return chi_square < parent.chi_limit;
 }
 
 #ifdef DEBUG
