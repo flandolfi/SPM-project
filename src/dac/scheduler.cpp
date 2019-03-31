@@ -52,9 +52,11 @@ void Scheduler::set_policy(Scheduler::Policy policy) {
             chi_limit = P_VALUE_0_500;
             break;
 
-        case Policy::perfect:
-            chi_limit = 0;
-            break;
+        case Policy::best:
+            if (n_workers >= 2) {
+                chi_limit = n_workers/(n_workers - 1.f);
+                break;
+            }
 
         case Policy::only_local:
             chi_limit = std::numeric_limits<float>::max();
@@ -77,7 +79,7 @@ void Scheduler::reset(unsigned long n_workers, Policy policy) {
     set_policy(policy);
 }
 
-bool Scheduler::compute_job(unsigned long from) {
+bool Scheduler::compute_next(unsigned long from) {
     JobType job;
 
     bool result = workers[from].get_job(job);

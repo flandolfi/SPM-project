@@ -53,7 +53,7 @@ public:
      * will not scale up. Vice versa, the more jobs are scheduled locally, the more we will observe a better
      * parallelization, but they may not be evenly distributed.     *
      */
-    enum class Policy { relaxed, strict, strong, perfect, only_local, only_global };
+    enum class Policy { relaxed, strict, strong, best, only_local, only_global };
 
     /**
      * Creates a Scheduler instance.
@@ -61,7 +61,7 @@ public:
      * @param n_workers number of parallel threads used to compute the scheduled tasks
      * @param policy the balancing policy
      */
-    explicit Scheduler(unsigned long n_workers = 1ul, Policy policy = Policy::only_global);
+    explicit Scheduler(unsigned long n_workers = 1ul, Policy policy = Policy::best);
 
     /**
      * Schedules a task to the given thread. It will increase the global job counter by 1.
@@ -83,7 +83,7 @@ public:
      * @param from the thread ID (it should be a number between 0 and @p n_workers - 1)
      * @return true if a job is found, false if there will be no more jobs to be retrieved.
      */
-    bool compute_job(unsigned long from);
+    bool compute_next(unsigned long from);
 
     /**
      * Sets the policy of the scheduler.

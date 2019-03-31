@@ -65,7 +65,7 @@ public:
      *     (@see Scheduler::Policy)
      */
     void compute(const TypeIn &input, TypeOut &output, unsigned long workers = 1,
-                 Scheduler::Policy policy = Scheduler::Policy::strict);
+                 Scheduler::Policy policy = Scheduler::Policy::best);
 };
 
 
@@ -155,8 +155,8 @@ void DAC<TypeIn, TypeOut>::join(std::vector<std::promise<TypeOut>> *sub_promises
 
 template<typename TypeIn, typename TypeOut>
 void DAC<TypeIn, TypeOut>::run(unsigned long id) {
-    while (forks.compute_job(id));
-    while (joins.compute_job(id));
+    while (forks.compute_next(id));
+    while (joins.compute_next(id));
 }
 
 
