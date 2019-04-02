@@ -42,7 +42,7 @@ public:
      *     - "relaxed": the probability to observe the current size of local queue of the thread is higher than 0.005;
      *     - "strict": the probability to observe the current size of local queue of the thread is higher than 0.05;
      *     - "strong": the probability to observe the current size of local queue of the thread is higher than 0.5;
-     *     - "perfect": the local queue is perfectly balanced.
+     *     - "best": a probability that depends on the number of parallel processors.
      *
      * Other options are:
      *     - "only_local": the task will be scheduled in the given local queue;
@@ -78,8 +78,7 @@ public:
      * the global queue. It will decrease the global counter by 1.
      *
      * @warning If there are no task in the local queue nor in the global one, this method will halt until either a job
-     * is scheduled (either locally or globally) or the internal counter is set to 0 (@see Scheduler:mark_done).
-     * @param job the retrieved job
+     * is scheduled (either locally or globally) or the internal counter is set to 0.
      * @param from the thread ID (it should be a number between 0 and @p n_workers - 1)
      * @return true if a job is found, false if there will be no more jobs to be retrieved.
      */
@@ -114,7 +113,6 @@ private:
 
     public:
         explicit SyncJobList();
-        SyncJobList(SyncJobList&& sync_list) noexcept;
         void push(JobType &&item);
         bool pop(JobType &item);
         void clear();

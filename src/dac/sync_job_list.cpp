@@ -10,9 +10,6 @@
 
 Scheduler::SyncJobList::SyncJobList() : remaining(0ull) {}
 
-Scheduler::SyncJobList::SyncJobList(SyncJobList &&list) noexcept
-    : queue(std::move(list.queue)), remaining(list.get_remaining()) {}
-
 void Scheduler::SyncJobList::push(JobType &&item) {
     std::unique_lock<std::mutex> lock(mtx);
 

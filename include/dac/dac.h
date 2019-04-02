@@ -61,8 +61,6 @@ public:
      * @param workers the number of threads to use to compute the solution (i.e., the parallelism degree)
      * @param fork_policy the balancing policy to use in the scheduler that manages the "fork" tasks
      *     (@see Scheduler::Policy)
-     * @param join_policy the balancing policy to use in the scheduler that manages the "join" tasks
-     *     (@see Scheduler::Policy)
      */
     void compute(const TypeIn &input, TypeOut &output, unsigned long workers = 1,
                  Scheduler::Policy policy = Scheduler::Policy::best);
@@ -89,7 +87,6 @@ void DAC<TypeIn, TypeOut>::compute(const TypeIn &input, TypeOut &output, unsigne
     }, 0ul);
 
     std::vector<std::thread> threads;
-    threads.reserve(workers - 1ul);
 
     for (auto id = 0ul; id < workers - 1ul; ++id)
         threads.emplace_back(&DAC::run, this, id);

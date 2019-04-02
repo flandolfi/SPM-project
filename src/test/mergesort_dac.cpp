@@ -18,6 +18,12 @@
 
  Author: Tiziano De Matteis <dematteis@di.unipi.it>
 
+ - - -
+
+ Slightly modified by Francesco Landolfi
+*/
+
+/*
 
  Mergesort: sort an array of N integer in parallel using the DAC pattern
   and C++11 semantics (iterator)

@@ -17,6 +17,10 @@
 
 
  Author: Tiziano De Matteis <dematteis@di.unipi.it>
+
+ - - -
+
+ Slightly modified by Francesco Landolfi
 */
 
 /**
