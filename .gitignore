@@ -13,5 +13,6 @@ cmake-build-*/*
 .vscode/*
 cmake-build-*/
 .ipynb_checkpoints
-report/*
+report/out/*
+report/figures/*
 notebooks/data/*
